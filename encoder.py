@@ -3,7 +3,7 @@ import warnings
 import os
 
 warnings.filterwarnings("ignore")
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # Suppress TensorFlow logging
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
 
 class Encoder(tf.keras.Model):
     def __init__(self, embedding_dim):

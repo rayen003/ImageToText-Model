@@ -122,18 +122,18 @@ class TextPreprocessingPipeline:
         return embeddings_np, images, cleaned_data
 
 
-# # # Usage
-# text_path = 'C:\Captions_generator\small_captions.txt'
-# pipeline = TextPreprocessingPipeline(max_len=50, embed_dim=128)
+# # Usage
+text_path = "small_captions.txt"
+pipeline = TextPreprocessingPipeline(max_len=50, embed_dim=128)
 
-# embeddings_np, images, cleaned_data = pipeline(text_path)
+embeddings_np, images, cleaned_data = pipeline(text_path)
 
-# random_key=random.choice(list(cleaned_data.keys()))
-# print(f'key chosen is: {random_key}')
+random_key=random.choice(list(cleaned_data.keys()))
+print(f'key chosen is: {random_key}')
 
-# print('---------------')
-# print('cleaned data')
-# print(cleaned_data[random_key])
+print('---------------')
+print('cleaned data')
+print(cleaned_data[random_key])
 
 
 

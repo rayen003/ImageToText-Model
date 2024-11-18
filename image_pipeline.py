@@ -6,6 +6,7 @@ import os
 import tensorflow as tf
 import numpy as np
 from tqdm import tqdm
+from PIL import Image
 import random
 from tensorflow.keras.applications.vgg16 import VGG16
 from tensorflow.keras.layers import Dense, Flatten
@@ -93,16 +94,22 @@ class ImagePreprocessingPipeline:
         return image_names, image_features
 
 # # Usage
-# image_dir = 'C:\Captions_generator\Small_Images'
-# pipeline = ImagePreprocessingPipeline(image_dir)
+# Usage
+#image_dir = 'Small_Images'
+#pipeline = ImagePreprocessingPipeline(image_dir)
 
-# image_names, image_features = pipeline()
+image_names, image_features = pipeline()
 
-# # Selecting a random image and its features
-# random_index = random.randint(0, len(image_names) - 1)
-# random_image_name = image_names[random_index]
-# random_image_features = image_features[random_index]
+# Selecting a random image and its features
+random_index = random.randint(0, len(image_names) - 1)
+random_image_name = image_names[random_index]
+random_image_features = image_features[random_index]
 
-# print(f'Randomly selected image: {random_image_name}')
-# print(f'First 5 features of the selected image: {random_image_features[:5]}')
+# Print the random image
+image_path = os.path.join(image_dir, random_image_name)
+image = Image.open(image_path + '.jpg')
+image.show()
+
+print(f'Randomly selected image: {random_image_name}')
+print(f'First 5 features of the selected image: {random_image_features[:5]}')
 
