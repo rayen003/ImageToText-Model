@@ -1,8 +1,8 @@
 import tensorflow as tf
 
-class SimpleDecoder(tf.keras.Model):
+class Decoder(tf.keras.Model):
     def __init__(self, vocab_size, embedding_dim, lstm_units):
-        super(SimpleDecoder, self).__init__()
+        super(Decoder, self).__init__()
         # LSTM layer for sequential processing
         self.lstm = tf.keras.layers.LSTM(lstm_units, return_sequences=True, return_state=True)
         # Dense layer to map LSTM outputs to vocabulary for prediction

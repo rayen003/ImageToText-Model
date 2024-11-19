@@ -13,100 +13,12 @@ import warnings
 warnings.filterwarnings("ignore")
 
 
-"""# Images preprocessing
-
-"""
-
-import os
-import tensorflow as tf
-import numpy as np
-from tqdm import tqdm
-from PIL import Image
-import random
-from tensorflow.keras.applications.vgg16 import VGG16
-from tensorflow.keras.layers import Dense, Flatten
-from tensorflow.keras.models import Model
-from tensorflow.keras.preprocessing.text import Tokenizer
-
-import warnings
-
-import os
-import numpy as np
-import tensorflow as tf
-from tqdm import tqdm
-
-# ---- IMAGE PREPROCESSING PIPELINE ----
-class ImagePreprocessingPipeline:
-    def __init__(self, image_dir, img_height=224, img_width=224):
-        self.image_dir = image_dir
-        self.img_height = img_height
-        self.img_width = img_width
-        self.image_features = {}
-
-        # Define a simple CNN for feature extraction
-        self.cnn_model = self.build_cnn_model()
-
-    def build_cnn_model(self):
-        """
-        Build a simple CNN model for feature extraction.
-        """
-        model = tf.keras.Sequential([
-            tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(self.img_height, self.img_width, 3)),
-            tf.keras.layers.MaxPooling2D((2, 2)),
-            tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-            tf.keras.layers.MaxPooling2D((2, 2)),
-            tf.keras.layers.Conv2D(128, (3, 3), activation='relu'),
-            tf.keras.layers.MaxPooling2D((2, 2)),
-            tf.keras.layers.GlobalAveragePooling2D()
-        ])
-        return model
-
-    def load_image(self, image_path):
-        """
-        Load and preprocess an image.
-        """
-        img = tf.io.read_file(image_path)
-        img = tf.image.decode_jpeg(img, channels=3)
-        img = tf.image.resize(img, (self.img_height, self.img_width))
-        img = img / 255.0  # Normalize to [0,1]
-        return img
-
-    def extract_image_features(self, image_paths):
-        """
-        Process each image path, extract features using the CNN, and store them in a dictionary.
-        """
-        for image_path in tqdm(image_paths):
-            img = self.load_image(image_path)
-            img = tf.expand_dims(img, axis=0)  # Add batch dimension
-
-            # Extract features using the CNN model
-            features = self.cnn_model(img)
-            features = tf.reshape(features, (-1))  # Flatten the features
-
-            image_name = os.path.splitext(os.path.basename(image_path))[0]
-            self.image_features[image_name] = features.numpy()
-
-    def get_image_paths(self):
-        """
-        Get all image paths from the specified directory.
-        """
-        return [os.path.join(self.image_dir, file) for file in os.listdir(self.image_dir) if file.endswith('.jpg')]
-
-    def __call__(self):
-        """
-        Streamline the entire process of image preprocessing by calling the methods in sequence.
-        Returns image names and features as a dictionary.
-        """
-        image_paths = self.get_image_paths()  # Step 1: Get image paths
-        self.extract_image_features(image_paths)  # Step 2: Extract image features
-
-        return self.image_features
 
 # Usage
-image_dir = 'Small_Images'
+image_dir = 'Images'
 pipeline = ImagePreprocessingPipeline(image_dir)
 image_features_dict = pipeline()
-BASE_DIR = "small_captions.txt"
+BASE_DIR = "captions.txt"
 
 with open(BASE_DIR, 'r') as f:
     next(f)
@@ -168,7 +80,6 @@ vocab_size = len(tokenizer.word_index) + 1
 
 
 max_length = max(len(caption.split()) for caption in all_captions)
-max_length
 inputs1 = Input(shape=(None,128))
 fe1 = Dropout(0.4)(inputs1)
 fe2 = Dense(256, activation='relu')(fe1)
@@ -278,52 +189,41 @@ model = Model(inputs=[inputs1, inputs2], outputs=outputs)
 model.compile(loss='categorical_crossentropy', optimizer='adam')
 
 # Fit the model
-epochs = 20
+epochs = 1
 steps = len(data) // batch_size
 model.fit(dataset, epochs=epochs, steps_per_epoch=steps, verbose=1)
 
 
 
-def predict_caption(model, image, tokenizer, max_length):
-    # add start tag for generation process
-    in_text = 'startseq'
-    # iterate over the max length of sequence
-    for i in range(max_length):
-        # encode input sequence
-        sequence = tokenizer.texts_to_sequences([in_text])[0]
-        # pad the sequence
-        sequence = pad_sequences([sequence], max_length)
-        # predict next word
-        yhat = model.predict([image, sequence], verbose=0)
-        # get index with high probability
+
+def predict(sequence, feature, tokenizer, model, max_length):
+    in_text = sequence
+    for _ in range(max_length):
+        # prepare the sequence
+        seq = tokenizer.texts_to_sequences([in_text])[0]
+        seq = pad_sequences([seq], maxlen=max_length)
+        # prepare the image
+        image = np.array([feature])
+        # predict the next word
+        yhat = model.predict([image, seq], verbose=0)
+        # convert probability to integer
         yhat = np.argmax(yhat)
-        # convert index to word
-        word = idx_to_word(yhat, tokenizer)
-        # stop if word not found
+        # map integer to word
+        word = tokenizer.index_word.get(yhat)
+        # stop if we cannot map the word
         if word is None:
             break
-        # append word as input for generating next word
-        in_text += " " + word
-        # stop if we reach end tag
+        # append as input for generating the next word
+        in_text += ' ' + word
+        # stop if we predict the end of the sequence
         if word == 'endseq':
             break
     return in_text
 
-from nltk.translate.bleu_score import corpus_bleu
-# validate with test data
-actual, predicted = list(), list()
+# Randomly select an image feature
+random_key = random.choice(list(image_features_dict.keys()))
+image_feature = image_features_dict[random_key]
 
-for key in tqdm(data.keys()):
-    # get actual caption
-    captions = data[key]
-    # predict the caption for image
-    y_pred = predict_caption(model, image_features_dict[key], tokenizer, max_length)
-    # split into words
-    actual_captions = [caption.split() for caption in captions]
-    y_pred = y_pred.split()
-    # append to the list
-    actual.append(actual_captions)
-    predicted.append(y_pred)
-# calcuate BLEU score
-print("BLEU-1: %f" % corpus_bleu(actual, predicted, weights=(1.0, 0, 0, 0)))
-print("BLEU-2: %f" % corpus_bleu(actual, predicted, weights=(0.5, 0.5, 0, 0)))
+# Generate the caption
+pred = predict('startseq', image_feature, tokenizer, model, max_length)
+print(f"Generated caption: {pred}")

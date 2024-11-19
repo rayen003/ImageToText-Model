@@ -1,25 +1,14 @@
 import tensorflow as tf
-import warnings
-import os
-
-warnings.filterwarnings("ignore")
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  
+from tensorflow.keras.layers import Dense, LSTM, Embedding, add, Input, Dropout
+from tensorflow.keras.models import Model
 
 class Encoder(tf.keras.Model):
-    def __init__(self, embedding_dim):
+    def __init__(self, dropout_rate=0.4, dense_units=256):
         super(Encoder, self).__init__()
-        self.dense1 = tf.keras.layers.Dense(512, activation='relu', name='dense_1_relu')
-        self.dense2 = tf.keras.layers.Dense(embedding_dim, name='dense_2_embedding')
-        
-    def __call__(self, x):
-        x = self.dense1(x)
-        return self.dense2(x)
+        self.fe1 = Dropout(dropout_rate)
+        self.fe2 = Dense(dense_units, activation='relu')
 
-    def inspect_encoder(self, input_shape):
-        """
-        Inspects the encoder by building the model with the given input shape.
-        """
-        self.build(input_shape)
-        return self.summary()
-
-
+    def call(self, inputs):
+        fe1 = self.fe1(inputs)
+        fe2 = self.fe2(fe1)
+        return fe2

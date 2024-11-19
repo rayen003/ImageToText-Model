@@ -16,9 +16,6 @@ from tensorflow.keras.models import Model
 import warnings
 
 
-warnings.filterwarnings("ignore")
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
-
 # ---- IMAGE PREPROCESSING PIPELINE ----
 class ImagePreprocessingPipeline:
     def __init__(self, image_dir, img_height=224, img_width=224):
@@ -65,7 +62,7 @@ class ImagePreprocessingPipeline:
 
             # Extract features using the CNN model
             features = self.cnn_model(img)
-            features = tf.reshape(features, (-1)) # Flatten the features
+            features = tf.reshape(features, (-1))  # Flatten the features
 
             image_name = os.path.splitext(os.path.basename(image_path))[0]
             self.image_features[image_name] = features.numpy()
@@ -75,41 +72,30 @@ class ImagePreprocessingPipeline:
         Get all image paths from the specified directory.
         """
         return [os.path.join(self.image_dir, file) for file in os.listdir(self.image_dir) if file.endswith('.jpg')]
- 
+
     def __call__(self):
         """
         Streamline the entire process of image preprocessing by calling the methods in sequence.
-        Returns image names and features as numpy arrays.
+        Returns image names and features as a dictionary.
         """
         image_paths = self.get_image_paths()  # Step 1: Get image paths
         self.extract_image_features(image_paths)  # Step 2: Extract image features
-        
-        # Convert the dictionary to numpy arrays
-        image_names = np.array(list(self.image_features.keys()))
-        image_features = np.array(list(self.image_features.values()))
-        
-        # print(f"Image names shape: {image_names.shape}")
-        # print(f"Image features shape: {image_features.shape}")
-        
-        return image_names, image_features
 
-# # Usage
-# Usage
-#image_dir = 'Small_Images'
-#pipeline = ImagePreprocessingPipeline(image_dir)
+        return self.image_features
+    
 
-image_names, image_features = pipeline()
 
-# Selecting a random image and its features
-random_index = random.randint(0, len(image_names) - 1)
-random_image_name = image_names[random_index]
-random_image_features = image_features[random_index]
+# ---- IMAGE PREPROCESSING PIPELINE ----
+image_dir = "Small_Images"
+pipeline = ImagePreprocessingPipeline(image_dir)
+image_features_dict = pipeline()
 
-# Print the random image
-image_path = os.path.join(image_dir, random_image_name)
-image = Image.open(image_path + '.jpg')
-image.show()
+# Display the number of images processed
+print(f"Number of images processed: {len(image_features_dict)}")
 
-print(f'Randomly selected image: {random_image_name}')
-print(f'First 5 features of the selected image: {random_image_features[:5]}')
+#get random image and display its features
+random_image = random.choice(list(image_features_dict.keys()))
+print(f"Random image: {random_image}")
+print(f"Image features: {image_features_dict[random_image][:10]}")
 
+    
