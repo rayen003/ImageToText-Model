@@ -1,2 +1,2 @@
 # ImageToText-Model
-
+structure:
