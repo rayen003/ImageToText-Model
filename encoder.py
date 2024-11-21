@@ -1,14 +1,23 @@
 import tensorflow as tf
-from tensorflow.keras.layers import Dense, LSTM, Embedding, add, Input, Dropout
-from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Dropout, Dense, Input
 
 class Encoder(tf.keras.Model):
-    def __init__(self, dropout_rate=0.4, dense_units=256):
+    def __init__(self, feature_shape, dense_units=256, dropout_rate=0.4):
         super(Encoder, self).__init__()
-        self.fe1 = Dropout(dropout_rate)
-        self.fe2 = Dense(dense_units, activation='relu')
+        self.dropout = Dropout(dropout_rate)
+        self.dense = Dense(dense_units, activation='relu')
+        self.feature_shape = feature_shape
 
     def call(self, inputs):
-        fe1 = self.fe1(inputs)
-        fe2 = self.fe2(fe1)
-        return fe2
+        x = self.dropout(inputs)
+        x = self.dense(x)
+        return x
+
+# Example usage
+if __name__ == "__main__":
+    feature_shape = 128  # Example feature shape
+    encoder = Encoder(feature_shape)
+    # Build the model by calling it with a sample input
+    sample_input = tf.random.uniform((1, feature_shape))
+    encoder(sample_input)
+    encoder.summary()

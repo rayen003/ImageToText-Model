@@ -1,14 +1,22 @@
 from image_pipeline import ImagePreprocessingPipeline
 from text_pipeline import TextPreprocessingPipeline
+from encoder import Encoder
+from decoder import Decoder
 import tensorflow as tf
-from tensorflow.keras.layers import Input, Dropout, Dense, Embedding, LSTM, add
+from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from tensorflow.keras.utils import to_categorical
 import numpy as np
 import random
+from PIL import Image
+import matplotlib.pyplot as plt
+import os
+import warnings
 
-# Usage
+warnings.filterwarnings('ignore')
+
+
 image_dir = 'Images'
 image_pipeline = ImagePreprocessingPipeline(image_dir)
 image_features_dict = image_pipeline()
@@ -21,27 +29,26 @@ tokenizer, vocab_size, data, all_captions = text_pipeline()
 # Extract the shape of the image features
 image_feature_shape = image_features_dict[list(image_features_dict.keys())[0]].shape[0]
 
+# Define the Encoder
+encoder = Encoder(image_feature_shape)
+
+# Define the Decoder
+embedding_dim = 128
+lstm_units = 256
+decoder = Decoder(vocab_size, embedding_dim, lstm_units)
+
 # Define the inputs
 image_input = Input(shape=(image_feature_shape,), name='image_input')
 caption_input = Input(shape=(max_length,), name='caption_input')
 
-# Feature extraction layers
-fe1 = Dropout(0.4)(image_input)
-fe2 = Dense(256, activation='relu')(fe1)
+# Get the encoded image features
+encoded_image = encoder(image_input)
 
-# Sequence feature layers
-embedding_dim = 128
-se1 = Embedding(vocab_size, embedding_dim, mask_zero=True)(caption_input)
-se2 = Dropout(0.4)(se1)
-se3 = LSTM(256)(se2)
-
-# Combine feature extraction output and sequence feature output
-decoder1 = add([fe2, se3])
-decoder2 = Dense(256, activation='relu')(decoder1)
-outputs = Dense(vocab_size, activation='softmax')(decoder2)
+# Get the decoder outputs
+decoder_outputs = decoder(encoded_image, caption_input)
 
 # Define the model
-model = Model(inputs=[image_input, caption_input], outputs=outputs)
+model = Model(inputs=[image_input, caption_input], outputs=decoder_outputs)
 
 # Compile the model
 model.compile(optimizer='adam', loss='categorical_crossentropy')
@@ -68,7 +75,7 @@ def data_generator(data_keys, mapping, features, tokenizer, max_length, vocab_si
                     n += 1
                     if n == batch_size:
                         X1, X2, y = np.array(X1), np.array(X2), np.array(y)
-                        yield (np.array(X1), np.array(X2)), np.array(y)
+                        yield (tf.convert_to_tensor(X1, dtype=tf.float32), tf.convert_to_tensor(X2, dtype=tf.float32)), tf.convert_to_tensor(y, dtype=tf.float32)
                         X1, X2, y = list(), list(), list()
                         n = 0
 
@@ -87,11 +94,15 @@ dataset = tf.data.Dataset.from_generator(
 )
 
 # Train the model
-epochs = 10
+epochs = 50
 steps_per_epoch = len(data_keys) // batch_size
 model.fit(dataset, epochs=epochs, steps_per_epoch=steps_per_epoch, verbose=1)
 
+# Save the model weights after training
+model.save_weights('model_weights.weights.h5')
 
+# Load the model weights before making predictions
+# model.load_weights('model_weights.weights.h5')
 
 def predict(sequence, feature, tokenizer, model, max_length):
     in_text = sequence
@@ -119,7 +130,20 @@ def predict(sequence, feature, tokenizer, model, max_length):
 
 # Test the model
 sequence = 'startseq'
-random_key = random.choice(list(image_features_dict.keys()))
-feature = image_features_dict[random_key]
+# random_key = random.choice(list(image_features_dict.keys()))
+# print(f"key chosen is {random_key}")
+feature = image_features_dict['191003287_2915c11d8e']
 caption = predict(sequence, feature, tokenizer, model, max_length)
 print(caption)
+
+
+image_path = '/Users/rayengallas/Captions_Generator/Images/191003287_2915c11d8e.jpg'
+image = Image.open(image_path)
+
+# Convert the image to a NumPy array
+image_array = np.array(image)
+
+# Display the image
+plt.imshow(image_array)
+plt.axis('off')  # Hide the axis
+plt.show()
