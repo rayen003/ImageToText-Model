@@ -4,15 +4,16 @@ import tensorflow as tf
 from tensorflow.keras.layers import Input, Dropout, Dense, Embedding, LSTM, add
 from tensorflow.keras.models import Model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.utils import to_categorical
 import numpy as np
 import random
 
 # Usage
-image_dir = 'Small_Images'
+image_dir = 'Images'
 image_pipeline = ImagePreprocessingPipeline(image_dir)
 image_features_dict = image_pipeline()
 
-text_dir = 'small_captions.txt'
+text_dir = 'captions.txt'
 max_length = 49
 text_pipeline = TextPreprocessingPipeline(text_dir, max_length)
 tokenizer, vocab_size, data, all_captions = text_pipeline()
@@ -48,11 +49,49 @@ model.compile(optimizer='adam', loss='categorical_crossentropy')
 # Print the model summary
 model.summary()
 
-# Save the model weights after training
-model.save_weights('model_weights.weights.h5')
+# Define the data generator
+def data_generator(data_keys, mapping, features, tokenizer, max_length, vocab_size, batch_size):
+    X1, X2, y = list(), list(), list()
+    n = 0
+    while True:
+        for key in data_keys:
+            captions = mapping[key]
+            for caption in captions:
+                seq = tokenizer.texts_to_sequences([caption])[0]
+                for i in range(1, len(seq)):
+                    in_seq, out_seq = seq[:i], seq[i]
+                    in_seq = pad_sequences([in_seq], maxlen=max_length)[0]
+                    out_seq = to_categorical([out_seq], num_classes=vocab_size)[0]
+                    X1.append(features[key])
+                    X2.append(in_seq)
+                    y.append(out_seq)
+                    n += 1
+                    if n == batch_size:
+                        X1, X2, y = np.array(X1), np.array(X2), np.array(y)
+                        yield (np.array(X1), np.array(X2)), np.array(y)
+                        X1, X2, y = list(), list(), list()
+                        n = 0
 
-# Load the model weights before making predictions
-model.load_weights('model_weights.weights.h5')
+# Define parameters for data generator
+data_keys = list(data.keys())
+batch_size = 32
+
+# Create the dataset using from_generator
+dataset = tf.data.Dataset.from_generator(
+    lambda: data_generator(data_keys, data, image_features_dict, tokenizer, max_length, vocab_size, batch_size),
+    output_signature=(
+        (tf.TensorSpec(shape=(None, image_feature_shape), dtype=tf.float32),
+         tf.TensorSpec(shape=(None, max_length), dtype=tf.float32)),
+        tf.TensorSpec(shape=(None, vocab_size), dtype=tf.float32)
+    )
+)
+
+# Train the model
+epochs = 10
+steps_per_epoch = len(data_keys) // batch_size
+model.fit(dataset, epochs=epochs, steps_per_epoch=steps_per_epoch, verbose=1)
+
+
 
 def predict(sequence, feature, tokenizer, model, max_length):
     in_text = sequence

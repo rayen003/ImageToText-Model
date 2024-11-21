@@ -85,17 +85,4 @@ class ImagePreprocessingPipeline:
     
 
 
-# ---- IMAGE PREPROCESSING PIPELINE ----
-image_dir = "Small_Images"
-pipeline = ImagePreprocessingPipeline(image_dir)
-image_features_dict = pipeline()
 
-# Display the number of images processed
-print(f"Number of images processed: {len(image_features_dict)}")
-
-#get random image and display its features
-random_image = random.choice(list(image_features_dict.keys()))
-print(f"Random image: {random_image}")
-print(f"Image features: {image_features_dict[random_image][:10]}")
-
-    
