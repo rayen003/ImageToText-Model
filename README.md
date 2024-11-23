@@ -77,26 +77,26 @@ with open(small_captions_file, 'w') as file:
 print(f'Sampled {images_to_keep} images out of {len(images)} total images.')
 print(f'Sampled captions written to {small_captions_file}.')
 ```
-Preprocessing Pipelines
+### Preprocessing Pipelines
 Image Preprocessing Pipeline
 The image preprocessing pipeline uses VGG16 to extract features from the images. The features are extracted from the fc2 layer of VGG16.
 
-Text Preprocessing Pipeline
+### Text Preprocessing Pipeline
 The text preprocessing pipeline uses BERT to encode the captions. The BERT tokenizer and model are used to preprocess and encode the captions.
 
-Model Architecture
+### Model Architecture
 The model architecture consists of an encoder and a decoder. The encoder processes the image features, and the decoder generates captions.
 
-Encoder
+### Encoder
 The encoder uses a pre-trained VGG16 model to extract features from the images.
 
 
-Decoder
+### Decoder
 The decoder uses BERT embeddings and an LSTM to generate captions.
 
-Training and Evaluation
+### Training and Evaluation
 The model is trained using the preprocessed image features and encoded captions. The training process involves defining a data generator, creating a dataset, and fitting the model.
 
-Main Script
+### Main Script
 The main.py script integrates the preprocessing pipelines and model architecture to train and evaluate the model.
 
