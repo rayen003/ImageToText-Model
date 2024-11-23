@@ -76,7 +76,7 @@ with open(small_captions_file, 'w') as file:
 
 print(f'Sampled {images_to_keep} images out of {len(images)} total images.')
 print(f'Sampled captions written to {small_captions_file}.')
-
+```
 Preprocessing Pipelines
 Image Preprocessing Pipeline
 The image preprocessing pipeline uses VGG16 to extract features from the images. The features are extracted from the fc2 layer of VGG16.
